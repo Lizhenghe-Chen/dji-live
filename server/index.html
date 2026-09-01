@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BunnyChen DJI Live</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #1e1e1e;
+    overflow: hidden;
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+
+  /* Live view: fullscreen iframe embedding MediaMTX WebRTC player */
+  #live {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  /* ===== Top bar ===== */
+  #topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0));
+    color: #ffffff;
+    z-index: 9999;
+    pointer-events: auto;
+  }
+  #topbar .title {
+    font-size: 22px;
+    font-weight: bold;
+    text-shadow: 0 0 6px #000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Live status dot */
+  #status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ff5252;          /* offline: red */
+    box-shadow: 0 0 8px #ff5252;
+    display: inline-block;
+    animation: blink 1.5s infinite;
+  }
+  #status-dot.online {
+    background: #4caf50;          /* online: green */
+    box-shadow: 0 0 8px #4caf50;
+    animation: none;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  #status-text {
+    font-size: 16px;
+    font-weight: normal;
+    text-shadow: 0 0 6px #000;
+  }
+  #topbar .clock {
+    text-align: right;
+    text-shadow: 0 0 6px #000;
+    padding-right: 10px;
+  }
+  #clock-time {
+    font-size: 24px;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+  }
+  #clock-date {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+
+  /* ===== Bottom bar ===== */
+  #bottombar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 28px;
+    padding: 8px 20px;
+    box-sizing: border-box;
+    background: linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0));
+    color: #ffffff;
+    font-size: 13px;
+    text-shadow: 0 0 4px #000;
+    z-index: 9999;
+    pointer-events: auto;
+  }
+  #bottombar .info-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.9;
+  }
+  #bottombar .info-label {
+    opacity: 0.6;
+  }
+  #bottombar .info-value {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Credit: project repo + author (top, avoids covering video) */
+  #credit {
+    position: fixed;
+    right: 12px;
+    top: 62px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
+    text-shadow: 0 0 4px #000;
+    text-align: right;
+    z-index: 9999;
+    pointer-events: auto;
+  }
+
+  /* Overlays auto-hide after inactivity, avoids covering video */
+  #topbar, #bottombar, #credit {
+    transition: opacity 0.6s ease;
+  }
+  .ui-hidden {
+    opacity: 0;
+  }
+
+  @media (max-width: 640px) {
+    #topbar { padding: 8px 12px; }
+    #topbar .title { font-size: 17px; gap: 7px; }
+    #status-text { font-size: 13px; }
+    #clock-time { font-size: 18px; }
+    #clock-date { font-size: 11px; }
+    #bottombar { padding: 6px 12px; font-size: 11px; }
+    #bottombar .info-item:first-child { display: none; }
+  }
+</style>
+</head>
+<body>
+  <!-- Live view: iframe src set dynamically to current host IP -->
+  <!-- allowfullscreen lets the video inside use the fullscreen button -->
+  <iframe id="live" allowfullscreen allow="fullscreen; autoplay; encrypted-media"></iframe>
+
+  <!-- Top bar: title + status + clock -->
+  <div id="topbar">
+    <div class="title">
+      <span id="status-dot"></span>
+      <span>BunnyChen DJI Live</span>
+      <span id="status-text">Checking…</span>
+    </div>
+    <div class="clock">
+      <div id="clock-time">--:--:--</div>
+      <div id="clock-date">--/--/----</div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="bottombar">
+    <div class="info-item">
+      <span class="info-label">Server</span>
+      <span id="server-address" class="info-value">--</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Path</span>
+      <span class="info-value">/livedji/</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Protocol</span>
+      <span class="info-value">WebRTC (WHEP)</span>
+    </div>
+  </div>
+
+  <!-- Credit: project repo + author -->
+  <div id="credit">GitHub: BunnyChen-DJI-RTPM · by BunnyChen</div>
+
+  <script>
+    // ===== Set iframe src dynamically =====
+    // Use the current page host IP so LAN devices point the
+    // iframe at the machine running MediaMTX, not themselves
+    const live = document.getElementById("live");
+    const host = window.location.hostname || "127.0.0.1";
+    live.src = "http://" + host + ":8889/livedji/";
+    document.getElementById("server-address").textContent = host + ":8889";
+
+    // ===== Real-time clock =====
+    const timeEl = document.getElementById("clock-time");
+    const dateEl = document.getElementById("clock-date");
+    const WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function updateClock() {
+      const now = new Date();
+      timeEl.textContent = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+      dateEl.textContent = WEEK[now.getDay()] + " " + now.getFullYear() + "/" + pad(now.getMonth() + 1) + "/" + pad(now.getDate());
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ===== Live status check =====
+    // Probe the MediaMTX WHEP endpoint to see if the service is up
+    // MediaMTX returns Access-Control-Allow-Origin: *, so cross-origin fetch works
+    const dot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+
+    async function checkStatus() {
+      try {
+        const res = await fetch("http://" + host + ":8889/livedji/whep", { method: "OPTIONS" });
+        if (res.ok) {
+          dot.classList.add("online");
+          statusText.textContent = "Online";
+        } else {
+          dot.classList.remove("online");
+          statusText.textContent = "Error (" + res.status + ")";
+        }
+      } catch (e) {
+        dot.classList.remove("online");
+        statusText.textContent = "Offline";
+      }
+    }
+    checkStatus();
+    setInterval(checkStatus, 5000);
+
+    // ===== Overlays auto-hide (keeps video unobstructed) =====
+    // Fade out after 3s idle; hover the top/bottom/credit bar or interact to bring back
+    const uiEls = [topbar, bottombar, document.getElementById("credit")];
+    let uiTimer = null;
+
+    function uiShow(keep) {
+      uiEls.forEach(function (el) { el.classList.remove("ui-hidden"); });
+      clearTimeout(uiTimer);
+      if (!keep) { uiTimer = setTimeout(uiHide, 3000); }
+    }
+    function uiHide() {
+      uiEls.forEach(function (el) { el.classList.add("ui-hidden"); });
+    }
+
+    uiEls.forEach(function (el) {
+      el.addEventListener("mouseenter", function () { uiShow(true); });
+      el.addEventListener("mouseleave", function () {
+        clearTimeout(uiTimer);
+        uiTimer = setTimeout(uiHide, 1500);
+      });
+    });
+
+    window.addEventListener("mousemove", function () { uiShow(false); });
+    window.addEventListener("touchstart", function () { uiShow(false); });
+
+    uiShow(false); // show initially, auto-fade after 3s
+  </script>
+</body>
+</html>

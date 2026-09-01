@@ -1,68 +1,47 @@
 # BunnyChen-DJI-RTPM
 
-大疆（DJI）无人机通过 **RTMP 推流**到本机 [MediaMTX](https://github.com/bluenviron/mediamtx)，
-实现低延迟本地直播观看的完整方案（含搭建与排障指南）。
+大疆无人机 RTMP 低延迟直播：**双击 `start.bat` 即可开播、观看**。
+
+## 快速开始
+
+1. **双击 `start.bat`**，自动启动 MediaMTX + 观看页
+2. 控制台打印所有地址（标注网络接口）：
+   - `WATCH` → 打开观看直播
+   - `SERVER` + `STREAM KEY` → 填入 DJI Fly
+3. DJI Fly → 自定义 RTMP：`SERVER` 填 `rtmp://<电脑IP>/`，`STREAM KEY` 填 `livedji`
+4. 任意设备浏览器打开 `WATCH` 地址观看
+
+> 具体地址以控制台输出为准（每个 IP 标注了对应网络接口）。
+
+## 前置条件
+
+- DJI 遥控器需**接入麦克风**（Type-C 耳机 / 蓝牙耳机）才能开播
+- 需**连接 / 起飞无人机**才有画面（否则仅音频或推流失败）
+- 遥控器与电脑需**同一局域网**（同一 WiFi / 手机热点）
+
+## 文件结构
 
 ```
-无人机相机 → 遥控器(DJI Fly) → RTMP推流 → MediaMTX(本机 :1935) → 本地观看
-                                                    ├─ RTMP  : rtmp://127.0.0.1:1935/livedji
-                                                    ├─ HLS   : http://127.0.0.1:8888/livedji/index.m3u8
-                                                    └─ WebRTC: http://127.0.0.1:8889/livedji  ← 延迟最低
+RTPM/
+├── start.bat          ← 一键启动（双击，唯一需要碰的文件）
+├── README.md / LICENSE
+├── server/            ← 服务端（脚本自动管理）
+│   ├── serve.ps1      ← 启动逻辑（拉起 MediaMTX + 托管观看页）
+│   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
+│   └── mediamtx_v1.20.1_windows_amd64/
+└── docs/
+    └── DJI_RTMP直播搭建与排障指南_Windows版.md   ← 详细排障
 ```
 
----
+## VLC 等播放器
 
-## MediaMTX 简介
+VLC `Ctrl+N` → 打开网络串流，粘贴地址：
 
-**MediaMTX** 是一个即开即用、零依赖的实时媒体服务器/媒体代理，支持通过
-Media-over-QUIC、SRT、WebRTC、RTSP、RTMP、HLS、MPEG-TS、RTP 等协议进行流的
-发布、读取、代理、录制与回放。它像一台“媒体路由器”，把多种协议互相转换，
-单可执行文件，兼容 **Linux / Windows / macOS**，无需安装依赖。
+- RTMP（低延迟）：`rtmp://<电脑IP>:1935/livedji`
+- HLS（更稳）：`http://<电脑IP>:8888/livedji/index.m3u8`
 
-- **官方网站**：https://mediamtx.org
-- **GitHub 仓库**：https://github.com/bluenviron/mediamtx （MIT 协议，20k+ stars）
-- **Releases 下载**：https://github.com/bluenviron/mediamtx/releases
-
-### 本仓库所用可执行文件
-
-| 平台 | 目录 / 文件 | 来源 |
-|------|------------|------|
-| Windows | `mediamtx_v1.20.1_windows_amd64\mediamtx.exe` | GitHub Releases v1.20.1 |
-| macOS   | （待补充） | 见下方「后续规划」 |
-
-可执行文件均来自 [bluenviron/mediamtx Releases](https://github.com/bluenviron/mediamtx/releases)，
-该仓库提供 **Linux、Windows、macOS、ARM** 等多个平台版本，可按需选用。
-
----
-
-## 快速开始（Windows）
-
-```powershell
-# 启动 MediaMTX
-cd mediamtx_v1.20.1_windows_amd64
-.\mediamtx.exe
-```
-
-启动成功标志：
-
-```
-[RTMP]   started with listener on :1935 (TCP/RTMP)
-[HLS]    started with listener on :8888  (TCP/HTTP)
-[WebRTC] started with listeners on :8889 (TCP/HTTP), :8189 (UDP/ICE)
-```
-
-默认端口：RTSP `8554`、RTMP `1935`、HLS `8888`、WebRTC `8889`、SRT `8890`。
-
----
+本机用 `127.0.0.1`；其它设备用电脑局域网 IP（以控制台标注为准）。
 
 ## 文档
 
-- 详细搭建与排障指南（Windows）：[DJI_RTMP直播搭建与排障指南_Windows版.md](./DJI_RTMP直播搭建与排障指南_Windows版.md)
-
----
-
-## 后续规划
-
-- [ ] 补充 **macOS** 版本（`mediamtx_darwin_*` 可执行文件）的搭建与排障说明
-- [ ] macOS 与 Windows 的防火墙/权限配置差异说明
-
+- 详细搭建与排障：[docs/DJI_RTMP直播搭建与排障指南_Windows版.md](./docs/DJI_RTMP直播搭建与排障指南_Windows版.md)
