@@ -1,10 +1,10 @@
 # BunnyChen-DJI-RTPM
 
-大疆无人机 RTMP 低延迟直播：**双击 `start.bat` 即可开播、观看**。
+大疆无人机 RTMP 低延迟直播：**一键启动即可开播、观看**（Windows / macOS）。
 
 ## 快速开始
 
-1. **双击 `start.bat`**，自动启动 MediaMTX + 观看页
+1. **启动**：Windows 双击 `start.bat`；macOS 双击 `start.command`（首次先 `chmod +x start.command`）
 2. 控制台打印所有地址（标注网络接口）：
    - `WATCH` → 打开观看直播
    - `SERVER` + `STREAM KEY` → 填入 DJI Fly
@@ -23,14 +23,18 @@
 
 ```
 RTPM/
-├── start.bat          ← 一键启动（双击，唯一需要碰的文件）
+├── start.bat          ← Windows 一键启动（双击）
+├── start.command      ← macOS 一键启动（双击）
 ├── README.md / LICENSE
 ├── server/            ← 服务端（脚本自动管理）
-│   ├── serve.ps1      ← 启动逻辑（拉起 MediaMTX + 托管观看页）
+│   ├── serve.ps1      ← Windows 启动逻辑
+│   ├── serve.py       ← macOS 页面托管（系统自带 python3）
 │   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
-│   └── mediamtx_v1.20.1_windows_amd64/
+│   ├── mediamtx_v1.20.1_windows_amd64/
+│   └── mediamtx_v1.20.1_darwin_{arm64,amd64}/   ← macOS（自行下载）
 └── docs/
-    └── DJI_RTMP直播搭建与排障指南_Windows版.md   ← 详细排障
+    ├── DJI_RTMP直播搭建与排障指南_Windows版.md
+    └── DJI_RTMP直播搭建与排障指南_macOS版.md   ← 待测试
 ```
 
 ## VLC 等播放器
@@ -44,4 +48,5 @@ VLC `Ctrl+N` → 打开网络串流，粘贴地址：
 
 ## 文档
 
-- 详细搭建与排障：[docs/DJI_RTMP直播搭建与排障指南_Windows版.md](./docs/DJI_RTMP直播搭建与排障指南_Windows版.md)
+- 详细搭建与排障（Windows）：[docs/DJI_RTMP直播搭建与排障指南_Windows版.md](./docs/DJI_RTMP直播搭建与排障指南_Windows版.md)
+- 详细搭建与排障（macOS，待测试）：[docs/DJI_RTMP直播搭建与排障指南_macOS版.md](./docs/DJI_RTMP直播搭建与排障指南_macOS版.md)
