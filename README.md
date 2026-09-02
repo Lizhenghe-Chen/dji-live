@@ -4,7 +4,7 @@
 
 ## 快速开始
 
-1. **启动**：Windows 双击 `start.bat`；macOS 双击 `start.command`（首次先 `chmod +x start.command`）
+1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`）
 2. 控制台打印所有地址（标注网络接口）：
    - `WATCH` → 打开观看直播
    - `SERVER` + `STREAM KEY` → 填入 DJI Fly
@@ -23,19 +23,21 @@
 
 ```
 RTPM/
-├── start.bat          ← Windows 一键启动（双击）
-├── start.command      ← macOS 一键启动（双击）
+├── start_windows.bat  ← Windows 一键启动（双击）
+├── start_macos.command ← macOS 一键启动（双击）
 ├── README.md / LICENSE
 ├── server/            ← 服务端（脚本自动管理）
 │   ├── serve.ps1      ← Windows 启动逻辑
 │   ├── serve.py       ← macOS 页面托管（系统自带 python3）
 │   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
 │   ├── mediamtx_v1.20.1_windows_amd64/
-│   └── mediamtx_v1.20.1_darwin_{arm64,amd64}/   ← macOS（自行下载）
+│   └── mediamtx_v1.20.1_darwin_arm64/           ← macOS Apple Silicon 已内置
 └── docs/
     ├── DJI_RTMP直播搭建与排障指南_Windows版.md
-    └── DJI_RTMP直播搭建与排障指南_macOS版.md   ← 待测试
+    └── DJI_RTMP直播搭建与排障指南_macOS版.md
 ```
+
+> Intel Mac：下载 `mediamtx_v1.20.1_darwin_amd64`，将其解压到 `server/mediamtx_v1.20.1_darwin_amd64/`；启动脚本会自动识别芯片。
 
 ## VLC 等播放器
 
@@ -49,4 +51,4 @@ VLC `Ctrl+N` → 打开网络串流，粘贴地址：
 ## 文档
 
 - 详细搭建与排障（Windows）：[docs/DJI_RTMP直播搭建与排障指南_Windows版.md](./docs/DJI_RTMP直播搭建与排障指南_Windows版.md)
-- 详细搭建与排障（macOS，待测试）：[docs/DJI_RTMP直播搭建与排障指南_macOS版.md](./docs/DJI_RTMP直播搭建与排障指南_macOS版.md)
+- 详细搭建与排障（macOS）：[docs/DJI_RTMP直播搭建与排障指南_macOS版.md](./docs/DJI_RTMP直播搭建与排障指南_macOS版.md)

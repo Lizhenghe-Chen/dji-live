@@ -4,7 +4,7 @@
 
 ## 一、启动
 
-**推荐：双击根目录 `start.bat`**。自动启动 MediaMTX（RTMP :1935 / WebRTC :8889 / HLS :8888）并托管观看页（:8080），控制台打印全部地址。
+**推荐：双击根目录 `start_windows.bat`**。自动启动 MediaMTX（RTMP :1935 / WebRTC :8889 / HLS :8888）并托管观看页（:8080），控制台打印全部地址。
 
 手动启动：
 
@@ -22,7 +22,7 @@ powershell -ExecutionPolicy Bypass -File server\serve.ps1
 | 推流码     | `livedji`                                 |
 
 - 电脑 IP 选遥控器所在网络的那个（控制台已标注接口）
-- 拼接结果等价 `rtmp://<电脑IP>:1935/livedji/`
+- 拼接结果等价 `rtmp://<电脑IP>:1935/livedji`
 - 实际 path 以 MediaMTX 日志为准
 
 **前置条件**：
@@ -54,9 +54,11 @@ VLC `Ctrl+N`（媒体 → 打开网络串流）粘贴地址：
 
 1. **遥控器提示检查 RTMP 地址 / 推流码**
 
-   - 防火墙放行 1935（及 8889 / 8189 UDP / 8080）**或者直接在安全中心暂时关闭所有网络的防火墙**：
+    - 防火墙放行 RTMP、观看页和 WebRTC 所需端口：
      ```powershell
      New-NetFirewallRule -DisplayName "MediaMTX RTMP" -Direction Inbound -Protocol TCP -LocalPort 1935 -Action Allow
+       New-NetFirewallRule -DisplayName "DJI Live Web" -Direction Inbound -Protocol TCP -LocalPort 8080,8889 -Action Allow
+       New-NetFirewallRule -DisplayName "MediaMTX WebRTC" -Direction Inbound -Protocol UDP -LocalPort 8189 -Action Allow
      ```
    - IP 选遥控器所在网络的网卡 IP
    - 看 MediaMTX 日志确认实际 path
