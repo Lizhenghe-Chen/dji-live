@@ -47,9 +47,9 @@ function Show-Steps {
     }
     Write-Host ""
     Write-Host "  STEP 2  PUSH - in DJI Fly, the SERVER address and" -ForegroundColor White
-    Write-Host "          the STREAM KEY are SEPARATE fields (port" -ForegroundColor White
-    Write-Host "          optional, defaults to 1935). Pick the one" -ForegroundColor White
-    Write-Host "          whose [ network ] your controller uses:" -ForegroundColor White
+    Write-Host "          the STREAM KEY are SEPARATE fields. No port" -ForegroundColor White
+    Write-Host "          needed in SERVER - defaults to 1935. Pick the" -ForegroundColor White
+    Write-Host "          one whose [ network ] your controller uses:" -ForegroundColor White
     Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254*" } | ForEach-Object {
         $alias = if ($_.InterfaceAlias) { $_.InterfaceAlias } else { "?" }
         Write-Host ("    SERVER:  rtmp://{0}/   [ {1} ]" -f $_.IPAddress, $alias) -ForegroundColor Cyan

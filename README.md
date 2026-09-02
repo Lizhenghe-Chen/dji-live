@@ -8,7 +8,7 @@
 2. 控制台打印所有地址（标注网络接口）：
    - `WATCH` → 打开观看直播
    - `SERVER` + `STREAM KEY` → 填入 DJI Fly
-3. DJI Fly → 自定义 RTMP：`SERVER` 填 `rtmp://<电脑IP>/`，`STREAM KEY` 填 `livedji`
+3. DJI Fly → 自定义 RTMP：`SERVER` 填 `rtmp://<电脑IP>/`（**默认不带端口号**，不填即用默认 1935），`STREAM KEY` 填 `livedji`
 4. 任意设备浏览器打开 `WATCH` 地址观看
 
 > 具体地址以控制台输出为准（每个 IP 标注了对应网络接口）。
