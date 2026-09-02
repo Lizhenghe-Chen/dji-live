@@ -2,6 +2,35 @@
 
 大疆无人机 RTMP 低延迟直播：**一键启动即可开播、观看**（Windows / macOS）。
 
+## 整体流程
+
+```mermaid
+flowchart TD
+    A["准备"] --> A1["硬件设备：无人机 / 遥控器 / 麦克风 / 电脑"]
+    A --> A2["推流软件：DJI Fly"]
+    A --> A3["系统 / 网络：同一 Wi-Fi / 热点、防火墙放行"]
+    A1 --> B{"你的系统？"}
+    A2 --> B
+    A3 --> B
+    B -->|"Windows"| C["双击 start_windows.bat"]
+    B -->|"macOS Apple Silicon"| D["双击 start_macos.command"]
+    B -->|"macOS Intel"| E["先下载 mediamtx darwin_amd64<br/>再双击 start_macos.command"]
+    C --> F["控制台显示 WATCH / SERVER / STREAM KEY"]
+    D --> F
+    E --> F
+    F --> G["DJI Fly 填入 SERVER + 推流码 livedji"]
+    G --> H["任意设备浏览器打开 WATCH 观看"]
+```
+
+## 组件就位情况
+
+| 组件 | Windows | macOS Apple Silicon | macOS Intel |
+| --- | --- | --- | --- |
+| MediaMTX 服务端 | ✅ 已内置 | ✅ 已内置 | ⬇️ 按需下载 |
+| 观看页 / 启动脚本 | ✅ 已内置 | ✅ 已内置 | ✅ 已内置 |
+
+> **macOS Intel 用户**：下载 `mediamtx_v1.20.1_darwin_amd64.tar.gz`（[官方 Releases](https://github.com/bluenviron/mediamtx/releases) v1.20.1），解压整个目录到 `server/mediamtx_v1.20.1_darwin_amd64/`；启动脚本自动识别芯片，无需改代码。
+
 ## 快速开始
 
 1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`）
@@ -13,11 +42,73 @@
 
 > 具体地址以控制台输出为准（每个 IP 标注了对应网络接口）。
 
-## 前置条件
+## 首次使用准备
 
-- DJI 遥控器需**接入麦克风**（Type-C 耳机 / 蓝牙耳机）才能开播
-- 需**连接 / 起飞无人机**才有画面（否则仅音频或推流失败）
-- 遥控器与电脑需**同一局域网**（同一 WiFi / 手机热点）
+### 硬件设备
+
+**必要**：
+- **大疆无人机 + 遥控器**：DJI Fly 已安装；无人机需**连接 / 起飞**才有画面
+- **麦克风**：Type-C 耳机 / 蓝牙耳机，**接入遥控器**才能开播
+- **电脑**：运行直播服务端（Windows / macOS）
+- **观看设备**：手机 / 平板 / 电脑，浏览器打开观看页
+
+**可选**：
+- **备用电池 / 移动电源**：延长无人机 / 遥控器续航
+- **网线**：电脑有线连接，网络更稳定
+- **外接大屏 / 电视**：更大画面的观看体验
+
+### 推流软件
+
+**必要**：
+- **DJI Fly**：遥控器上的大疆 App，内置 RTMP 推流；在「自定义 RTMP」填入 SERVER + STREAM KEY 即可开播
+
+**可选**：
+- **OBS Studio**：通用推流软件，可代替 DJI 推流做测试或其它直播场景
+
+### 系统准备
+
+- **macOS 首次**：`chmod +x start_macos.command`；被 Gatekeeper 拦截时执行 `xattr -dr com.apple.quarantine start_macos.command`
+- **防火墙**：首次运行弹窗点「允许」（macOS），或放行相关端口（Windows 见排障指南）
+- **网络**：遥控器与电脑需**同一 Wi-Fi 或同一手机热点**（无需外网）
+
+## DJI Fly 配置（遥控器）
+
+自定义 RTMP，**服务器地址与推流码分开填**：
+
+| 栏目 | 填写 |
+| --- | --- |
+| 服务器地址 | `rtmp://<电脑IP>/`（**默认不带端口号**，不填即用默认 1935） |
+| 推流码 | `livedji` |
+
+- 电脑 IP 选遥控器所在网络的那个（控制台已标注接口）
+- 拼接结果等价 `rtmp://<电脑IP>:1935/livedji`
+- 实际 path 以 MediaMTX 日志为准
+
+## 观看方式
+
+| 方式 | 地址 | 延迟 |
+| --- | --- | --- |
+| 自定义观看页（推荐） | `http://<电脑IP>:8080/` | 低（含状态 / 时钟 / 署名） |
+| WebRTC | `http://<电脑IP>:8889/livedji` | 最低 |
+| HLS | `http://<电脑IP>:8888/livedji/index.m3u8` | 最高 |
+
+- 本机用 `127.0.0.1`；其它设备用电脑局域网 IP（不能填 `127.0.0.1`）
+
+### VLC 等播放器
+
+VLC `Ctrl+N`（媒体 → 打开网络串流）粘贴地址：
+
+| 场景 | RTMP（低延迟） | HLS（更稳） |
+| --- | --- | --- |
+| 本机 | `rtmp://127.0.0.1:1935/livedji` | `http://127.0.0.1:8888/livedji/index.m3u8` |
+| 局域网 | `rtmp://<电脑IP>:1935/livedji` | `http://<电脑IP>:8888/livedji/index.m3u8` |
+
+## 常见问题
+
+- **只有音频没视频**（日志 `1 track`）：无人机未起飞 / 相机未激活；DJI 端建议编码 H.264
+- **VLC 无法打开**：该路径无活动推流，先确认遥控器已开播
+- **延迟大**：用 WebRTC / 自定义观看页；降低图传清晰度 / 码率
+- **遥控器提示检查 RTMP 地址 / 推流码**：见对应平台的防火墙与日志排障（[macOS](./docs/DJI_RTMP直播搭建与排障指南_macOS版.md) / [Windows](./docs/DJI_RTMP直播搭建与排障指南_Windows版.md)）
 
 ## 文件结构
 
@@ -30,23 +121,14 @@ RTPM/
 │   ├── serve.ps1      ← Windows 启动逻辑
 │   ├── serve.py       ← macOS 页面托管（系统自带 python3）
 │   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
-│   ├── mediamtx_v1.20.1_windows_amd64/
-│   └── mediamtx_v1.20.1_darwin_arm64/           ← macOS Apple Silicon 已内置
+│   ├── mediamtx_v1.20.1_windows_amd64/          ← 已内置
+│   └── mediamtx_v1.20.1_darwin_arm64/           ← 已内置（Apple Silicon）
 └── docs/
     ├── DJI_RTMP直播搭建与排障指南_Windows版.md
     └── DJI_RTMP直播搭建与排障指南_macOS版.md
 ```
 
-> Intel Mac：下载 `mediamtx_v1.20.1_darwin_amd64`，将其解压到 `server/mediamtx_v1.20.1_darwin_amd64/`；启动脚本会自动识别芯片。
-
-## VLC 等播放器
-
-VLC `Ctrl+N` → 打开网络串流，粘贴地址：
-
-- RTMP（低延迟）：`rtmp://<电脑IP>:1935/livedji`
-- HLS（更稳）：`http://<电脑IP>:8888/livedji/index.m3u8`
-
-本机用 `127.0.0.1`；其它设备用电脑局域网 IP（以控制台标注为准）。
+> Intel Mac：按上方「组件就位情况」下载 amd64 版，解压到 `server/mediamtx_v1.20.1_darwin_amd64/`。
 
 ## 文档
 
