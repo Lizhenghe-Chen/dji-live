@@ -3,6 +3,8 @@
 > 环境：Windows + MediaMTX v1.20.1（本仓库 `server/mediamtx_v1.20.1_windows_amd64`）+ DJI Fly 遥控器。
 > ✅ Windows 版 MediaMTX 已随仓库内置，**无需下载**，开箱即用。
 
+本项目不需要安装 Python、Node.js、npm、Docker 或其它运行环境。Windows 版使用系统自带的 PowerShell / .NET 托管观看页。
+
 > 通用准备（硬件设备 / 推流软件 / 网络：同一 Wi-Fi 或热点）统一见根目录 [README](../README.md)。
 
 ## 一、启动

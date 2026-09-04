@@ -27,6 +27,37 @@ is_web_server_running() {
   curl --max-time 1 -fsS "http://127.0.0.1:$PORT/" | grep -q "<title>BunnyChen DJI Live</title>"
 }
 
+start_web_server() {
+  local index_file="$PWD/server/index.html"
+  local content_length
+
+  if ! command -v nc >/dev/null 2>&1; then
+    echo "ERROR: nc (netcat) is not available on this macOS"
+    return 1
+  fi
+
+  if [ ! -f "$index_file" ]; then
+    echo "ERROR: index.html not found at $index_file"
+    return 1
+  fi
+
+  content_length=$(wc -c < "$index_file" | tr -d ' ')
+  nohup bash -c '
+    PORT="$1"
+    INDEX_FILE="$2"
+    CONTENT_LENGTH="$3"
+    while true; do
+      {
+        printf "HTTP/1.1 200 OK\r\n"
+        printf "Content-Type: text/html; charset=utf-8\r\n"
+        printf "Content-Length: %s\r\n" "$CONTENT_LENGTH"
+        printf "Connection: close\r\n\r\n"
+        cat "$INDEX_FILE"
+      } | nc -l "$PORT" >/dev/null 2>&1
+    done
+  ' _ "$PORT" "$index_file" "$content_length" >/dev/null 2>&1 &
+}
+
 if [ ! -x "$MTX_EXE" ]; then
   echo "==============================================================="
   echo "  ERROR: MediaMTX not found at $MTX_EXE"
@@ -64,7 +95,7 @@ else
   echo "      MediaMTX is up (RTMP :1935, WebRTC :8889, HLS :8888)"
 fi
 
-# ---------- 2. host the live page (python3, bundled with macOS) ----------
+# ---------- 2. host the live page (built-in nc, no extra dependency) ----------
 PORT=8080
 if lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
   if is_web_server_running; then
@@ -76,7 +107,7 @@ if lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
   fi
 else
   echo "[2/2] Starting web server ..."
-  nohup python3 "$PWD/server/serve.py" "$PWD/server" $PORT >/dev/null 2>&1 &
+  start_web_server
   for i in $(seq 1 10); do
     sleep 0.5
     is_web_server_running && break

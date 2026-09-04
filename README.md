@@ -2,6 +2,17 @@
 
 大疆无人机 RTMP 低延迟直播：**一键启动即可开播、观看**（Windows / macOS）。
 
+## 项目特色：无需额外依赖
+
+下载项目后即可运行，**不需要安装 Python、Node.js、npm、Docker 或其它开发环境**：
+
+- Windows 使用系统自带的 PowerShell / .NET 托管观看页
+- macOS 使用系统自带的 `nc`（netcat）托管观看页
+- MediaMTX 服务端已随项目内置，无需单独安装
+- 观看页不依赖 CDN、npm 或外部网络，局域网内即可使用
+
+唯一例外是 **Intel Mac**：由于系统架构不同，需要按下方说明额外下载一次 Intel 版 MediaMTX；Apple Silicon Mac 和 Windows 均可直接使用。
+
 ## 整体流程
 
 ```mermaid
@@ -33,7 +44,7 @@ flowchart TD
 
 ## 快速开始
 
-1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`）
+1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`，这不是安装依赖）
 2. 控制台打印所有地址（标注网络接口）：
    - `WATCH` → 打开观看直播
    - `SERVER` + `STREAM KEY` → 填入 DJI Fly
@@ -123,7 +134,6 @@ RTPM/
 ├── README.md / LICENSE
 ├── server/            ← 服务端（脚本自动管理）
 │   ├── serve.ps1      ← Windows 启动逻辑
-│   ├── serve.py       ← macOS 页面托管（系统自带 python3）
 │   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
 │   ├── mediamtx_v1.20.1_windows_amd64/          ← 已内置
 │   └── mediamtx_v1.20.1_darwin_arm64/           ← 已内置（Apple Silicon）
