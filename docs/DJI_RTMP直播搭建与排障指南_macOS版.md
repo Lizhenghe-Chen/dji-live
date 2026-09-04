@@ -42,7 +42,7 @@ chmod +x start_macos.command
 3. 用 macOS 自带 nc（netcat）托管观看页（:8080），零安装
 4. 打印全部地址（标注接口，en0 通常为 Wi-Fi）
 
-关闭窗口后服务仍在后台运行。
+关闭窗口后服务仍在后台运行。全部停止见 [README](../README.md)「停止与后台运行」；排障日志位于 `server/mediamtx.log`。
 
 ## 三、遥控器（DJI Fly）配置
 
@@ -56,4 +56,4 @@ chmod +x start_macos.command
 
    - 防火墙允许 mediamtx 接受传入连接（系统设置 → 网络 → 防火墙）
    - IP 选遥控器所在网络的网卡 IP
-   - 看 MediaMTX 日志确认实际 path
+   - 看 MediaMTX 日志确认实际 path（`server/mediamtx.log`）

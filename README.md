@@ -74,15 +74,15 @@ flowchart TD
 
 ## DJI Fly 配置（遥控器）
 
-自定义 RTMP，**服务器地址与推流码分开填**：
+自定义 RTMP，两种填法等价，任选其一：
 
-| 栏目       | 填写                                                                |
-| ---------- | ------------------------------------------------------------------- |
-| 服务器地址 | `rtmp://<电脑IP>/`（**默认不带端口号**，不填即用默认 1935） |
-| 推流码     | `livedji`                                                         |
+| 方式 | 服务器地址 | 推流码 |
+| --- | --- | --- |
+| A | `rtmp://<电脑IP>/`（不带端口号，默认 1935） | `livedji` |
+| B | `rtmp://<电脑IP>/livedji` | 留空 |
 
 - 电脑 IP 选遥控器所在网络的那个（控制台已标注接口）
-- 拼接结果等价 `rtmp://<电脑IP>:1935/livedji`
+- 两种写法均等价于 `rtmp://<电脑IP>:1935/livedji`
 
 ## 观看方式
 
@@ -103,6 +103,15 @@ VLC `Ctrl+N`（媒体 → 打开网络串流）粘贴地址：
 | 本机   | `rtmp://127.0.0.1:1935/livedji` | `http://127.0.0.1:8888/livedji/index.m3u8` |
 | 局域网 | `rtmp://<电脑IP>:1935/livedji`  | `http://<电脑IP>:8888/livedji/index.m3u8`  |
 
+## 停止与后台运行
+
+- 启动后服务在**后台常驻**：关闭启动窗口不影响推流与观看
+- 再次双击启动脚本可重新查看地址，不会重复启动服务
+- **全部停止**：双击 `stop_macos.command` / `stop_windows.bat`
+- Windows 关闭启动窗口只停观看页，MediaMTX 仍在后台运行
+- **重启电脑后**需重新双击启动脚本
+- **排障日志**：`server/mediamtx.log`（Windows 另有 `mediamtx.err.log`）
+
 ## 常见问题
 
 - **只有音频没视频**（日志 `1 track`）：无人机未起飞 / 相机未激活；DJI 端建议编码 H.264
@@ -115,11 +124,15 @@ VLC `Ctrl+N`（媒体 → 打开网络串流）粘贴地址：
 ```
 RTPM/
 ├── start_windows.bat  ← Windows 一键启动（双击）
+├── stop_windows.bat   ← Windows 一键停止（双击）
 ├── start_macos.command ← macOS 一键启动（双击）
+├── stop_macos.command  ← macOS 一键停止（双击）
 ├── README.md / LICENSE
 ├── server/            ← 服务端（脚本自动管理）
 │   ├── serve.ps1      ← Windows 启动逻辑
+│   ├── stop.ps1       ← Windows 停止逻辑
 │   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
+│   ├── mediamtx.log   ← MediaMTX 日志（运行时生成，见「停止与后台运行」）
 │   ├── mediamtx_v1.20.1_windows_amd64/          ← 已内置
 │   └── mediamtx_v1.20.1_darwin_arm64/           ← 已内置（Apple Silicon）
 └── docs/            ← 排障指南（见下方「文档」）

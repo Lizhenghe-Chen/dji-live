@@ -12,7 +12,10 @@ if (Get-Process -Name "mediamtx" -ErrorAction SilentlyContinue) {
     Write-Host "[1/2] MediaMTX already running" -ForegroundColor Green
 } else {
     Write-Host "[1/2] Starting MediaMTX..." -ForegroundColor Yellow
-    Start-Process -FilePath $mtxExe -WorkingDirectory $mtxDir
+    $mtxLog = Join-Path $PSScriptRoot "mediamtx.log"
+    $mtxErrLog = Join-Path $PSScriptRoot "mediamtx.err.log"
+    Start-Process -FilePath $mtxExe -WorkingDirectory $mtxDir `
+        -RedirectStandardOutput $mtxLog -RedirectStandardError $mtxErrLog
     $ready = $false
     for ($i = 0; $i -lt 40; $i++) {
         Start-Sleep -Milliseconds 500
@@ -31,7 +34,6 @@ if (Get-Process -Name "mediamtx" -ErrorAction SilentlyContinue) {
 # ---------- 2. Host the live page ----------
 $port = 8080
 $file = Join-Path $PSScriptRoot "index.html"
-$body = [System.IO.File]::ReadAllBytes($file)
 
 function Show-Steps {
     Write-Host ""
@@ -46,15 +48,16 @@ function Show-Steps {
         Write-Host ("    WATCH:  http://{0}:{1}/   [ {2} ]" -f $_.IPAddress, $port, $alias) -ForegroundColor Cyan
     }
     Write-Host ""
-    Write-Host "  STEP 2  PUSH - in DJI Fly, the SERVER address and" -ForegroundColor White
-    Write-Host "          the STREAM KEY are SEPARATE fields. No port" -ForegroundColor White
-    Write-Host "          needed in SERVER - defaults to 1935. Pick the" -ForegroundColor White
-    Write-Host "          one whose [ network ] your controller uses:" -ForegroundColor White
+    Write-Host "  STEP 2  PUSH - in DJI Fly, two equivalent options:" -ForegroundColor White
+    Write-Host "          A) fill SEPARATE fields - SERVER + STREAM KEY (no port" -ForegroundColor White
+    Write-Host "             needed in SERVER, defaults to 1935). Pick the one" -ForegroundColor White
+    Write-Host "             whose [ network ] your controller uses:" -ForegroundColor White
     Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254*" } | ForEach-Object {
         $alias = if ($_.InterfaceAlias) { $_.InterfaceAlias } else { "?" }
         Write-Host ("    SERVER:  rtmp://{0}/   [ {1} ]" -f $_.IPAddress, $alias) -ForegroundColor Cyan
     }
     Write-Host "    STREAM KEY:  livedji" -ForegroundColor Cyan
+    Write-Host "          B) SERVER = rtmp://IP/livedji, leave STREAM KEY empty" -ForegroundColor White
     Write-Host ""
     Write-Host "  STEP 3  Start pushing in DJI Fly, then check the" -ForegroundColor White
     Write-Host "          WATCH page - stream appears within ~5s." -ForegroundColor White
@@ -67,7 +70,10 @@ function Show-Steps {
 if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
     Write-Host "[2/2] Web server already running on port $port (skip)" -ForegroundColor Yellow
     Show-Steps
-    Write-Host "  Note: server keeps running; Ctrl+C only closes this window." -ForegroundColor Yellow
+    Write-Host "  Services are running in the background." -ForegroundColor Yellow
+    Write-Host "  - stop all:  double-click stop_windows.bat" -ForegroundColor Yellow
+    Write-Host "  - logs:      server\mediamtx.log" -ForegroundColor Yellow
+    Write-Host "  - after a reboot, run start_windows.bat again." -ForegroundColor Yellow
     Write-Host ""
     while ($true) { Start-Sleep -Seconds 3600 }
 }
@@ -77,7 +83,9 @@ $listener.Start()
 
 Write-Host "[2/2] Live page ready" -ForegroundColor Green
 Show-Steps
-Write-Host "Ctrl+C stops web server (MediaMTX keeps running)" -ForegroundColor Yellow
+Write-Host "Closing this window stops the watch page only;" -ForegroundColor Yellow
+Write-Host "MediaMTX keeps running in the background (logs: server\mediamtx.log)." -ForegroundColor Yellow
+Write-Host "To stop everything: double-click stop_windows.bat" -ForegroundColor Yellow
 
 while ($true) {
     $client = $listener.AcceptTcpClient()
@@ -85,6 +93,8 @@ while ($true) {
     $reader = [System.IO.StreamReader]::new($stream)
     $requestLine = $reader.ReadLine()
     if ($null -ne $requestLine) {
+        # Read per request so index.html edits apply on next refresh (no restart)
+        $body = [System.IO.File]::ReadAllBytes($file)
         $header = "HTTP/1.1 200 OK`r`nContent-Type: text/html; charset=utf-8`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n"
         $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
         $stream.Write($headerBytes, 0, $headerBytes.Length)

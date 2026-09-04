@@ -6,6 +6,9 @@
 set -e
 cd "$(dirname "$0")"
 
+# MediaMTX log file (runtime artifact, kept in server/)
+MTX_LOG="$PWD/server/mediamtx.log"
+
 # ---------- locate macOS MediaMTX (auto-detect chip) ----------
 ARCH=$(uname -m)
 if [ "$ARCH" = "arm64" ]; then
@@ -29,7 +32,6 @@ is_web_server_running() {
 
 start_web_server() {
   local index_file="$PWD/server/index.html"
-  local content_length
 
   if ! command -v nc >/dev/null 2>&1; then
     echo "ERROR: nc (netcat) is not available on this macOS"
@@ -41,21 +43,22 @@ start_web_server() {
     return 1
   fi
 
-  content_length=$(wc -c < "$index_file" | tr -d ' ')
+  # Content-Length is recomputed on every request, so edits to index.html
+  # apply on the next page refresh (no server restart needed).
   nohup bash -c '
     PORT="$1"
     INDEX_FILE="$2"
-    CONTENT_LENGTH="$3"
     while true; do
+      LEN=$(wc -c < "$INDEX_FILE" | tr -d " ")
       {
         printf "HTTP/1.1 200 OK\r\n"
         printf "Content-Type: text/html; charset=utf-8\r\n"
-        printf "Content-Length: %s\r\n" "$CONTENT_LENGTH"
+        printf "Content-Length: %s\r\n" "$LEN"
         printf "Connection: close\r\n\r\n"
         cat "$INDEX_FILE"
       } | nc -l "$PORT" >/dev/null 2>&1
     done
-  ' _ "$PORT" "$index_file" "$content_length" >/dev/null 2>&1 &
+  ' _ "$PORT" "$index_file" >/dev/null 2>&1 &
 }
 
 if [ ! -x "$MTX_EXE" ]; then
@@ -82,7 +85,7 @@ elif lsof -iTCP:1935 -sTCP:LISTEN >/dev/null 2>&1; then
   exit 1
 else
   chmod +x "$MTX_EXE"
-  (cd "$MTX_DIR" && nohup ./mediamtx >/dev/null 2>&1 &)
+  (cd "$MTX_DIR" && nohup ./mediamtx >"$MTX_LOG" 2>&1 &)
   for i in $(seq 1 20); do
     sleep 0.5
     is_mtx_running && break
@@ -141,15 +144,19 @@ echo "  STEP 1  WATCH - open any url below on a device"
 echo "          in the SAME network as this Mac:"
 list_ip "WATCH" "http://" ":$PORT/"
 echo ""
-echo "  STEP 2  PUSH - in DJI Fly, fill SEPARATE fields:"
-echo "          (SERVER: no port needed - defaults to 1935)"
+echo "  STEP 2  PUSH - in DJI Fly, two equivalent options:"
+echo "          A) fill SEPARATE fields (SERVER no port - defaults to 1935):"
 list_ip "SERVER" "rtmp://" "/"
 echo "    STREAM KEY:  livedji"
+echo "          B) SERVER = rtmp://IP/livedji, leave STREAM KEY empty"
 echo ""
 echo "  STEP 3  Start pushing in DJI Fly, then check the"
 echo "          WATCH page - stream appears within ~5s."
 echo ""
 echo "  Tip: also open on this Mac:  http://127.0.0.1:$PORT/"
 echo ""
-echo "  Servers keep running in the background."
+echo "  Services keep running in the background after this window closes."
+echo "  - stop all:   double-click stop_macos.command"
+echo "  - view logs:  server/mediamtx.log"
+echo "  - after reboot, double-click start_macos.command again."
 read -n 1 -s -r -p "Press any key to close this window"

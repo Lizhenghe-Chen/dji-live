@@ -23,29 +23,34 @@
     border: 0;
   }
 
-  /* ===== Top bar ===== */
+  /* ===== Info overlay: always visible, top-only (player controls live at bottom/center) ===== */
   #topbar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
+    padding: 10px 16px 8px;
+    box-sizing: border-box;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0));
+    color: #ffffff;
+    z-index: 9999;
+    pointer-events: none;   /* let clicks pass through to the video */
+  }
+  #topbar > * { pointer-events: auto; }
+  #topbar .top-main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
-    box-sizing: border-box;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0));
-    color: #ffffff;
-    z-index: 9999;
-    pointer-events: auto;
+    gap: 12px;
   }
   #topbar .title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
     text-shadow: 0 0 6px #000;
     display: flex;
     align-items: center;
     gap: 10px;
+    white-space: nowrap;
   }
   /* Live status dot */
   #status-dot {
@@ -67,86 +72,62 @@
     50% { opacity: 0.3; }
   }
   #status-text {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: normal;
     text-shadow: 0 0 6px #000;
   }
   #topbar .clock {
     text-align: right;
     text-shadow: 0 0 6px #000;
-    padding-right: 10px;
   }
   #clock-time {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     font-variant-numeric: tabular-nums;
   }
   #clock-date {
-    font-size: 13px;
+    font-size: 12px;
     opacity: 0.85;
   }
 
-  /* ===== Bottom bar ===== */
-  #bottombar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+  /* ===== Stream info row (second line under the title, always visible) ===== */
+  #info {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-start;
-    gap: 28px;
-    padding: 8px 20px;
-    box-sizing: border-box;
-    background: linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0));
-    color: #ffffff;
-    font-size: 13px;
+    gap: 4px 20px;
+    margin-top: 6px;
+    font-size: 12.5px;
     text-shadow: 0 0 4px #000;
-    z-index: 9999;
-    pointer-events: auto;
+    opacity: 0.9;
   }
-  #bottombar .info-item {
+  #info .info-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    opacity: 0.9;
   }
-  #bottombar .info-label {
-    opacity: 0.6;
+  #info .info-label {
+    opacity: 0.55;
   }
-  #bottombar .info-value {
+  #info .info-value {
     font-variant-numeric: tabular-nums;
+    font-weight: 600;
   }
-
-  /* Credit: project repo + author (top, avoids covering video) */
   #credit {
-    position: fixed;
-    right: 12px;
-    top: 62px;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 12px;
-    text-shadow: 0 0 4px #000;
+    margin-left: auto;
+    opacity: 0.5;
+    font-size: 11px;
     text-align: right;
-    z-index: 9999;
-    pointer-events: auto;
-  }
-
-  /* Overlays auto-hide after inactivity, avoids covering video */
-  #topbar, #bottombar, #credit {
-    transition: opacity 0.6s ease;
-  }
-  .ui-hidden {
-    opacity: 0;
   }
 
   @media (max-width: 640px) {
-    #topbar { padding: 8px 12px; }
-    #topbar .title { font-size: 17px; gap: 7px; }
-    #status-text { font-size: 13px; }
-    #clock-time { font-size: 18px; }
-    #clock-date { font-size: 11px; }
-    #bottombar { padding: 6px 12px; font-size: 11px; }
-    #bottombar .info-item:first-child { display: none; }
+    #topbar { padding: 6px 10px 8px; }
+    #topbar .title { font-size: 15px; gap: 6px; }
+    #status-text { font-size: 12px; }
+    #clock-time { font-size: 17px; }
+    #clock-date { font-size: 10px; }
+    #info { font-size: 11px; gap: 4px 12px; }
+    #credit { display: none; }
   }
 </style>
 </head>
@@ -155,37 +136,36 @@
   <!-- allowfullscreen lets the video inside use the fullscreen button -->
   <iframe id="live" allowfullscreen allow="fullscreen; autoplay; encrypted-media"></iframe>
 
-  <!-- Top bar: title + status + clock -->
+  <!-- Info overlay: title/status/clock (row 1) + stream info/credit (row 2). -->
+  <!-- Kept top-only and always visible so the player controls are never covered. -->
   <div id="topbar">
-    <div class="title">
-      <span id="status-dot"></span>
-      <span>BunnyChen DJI Live</span>
-      <span id="status-text">Checking…</span>
+    <div class="top-main">
+      <div class="title">
+        <span id="status-dot"></span>
+        <span>BunnyChen DJI Live</span>
+        <span id="status-text">Checking…</span>
+      </div>
+      <div class="clock">
+        <div id="clock-time">--:--:--</div>
+        <div id="clock-date">--/--/----</div>
+      </div>
     </div>
-    <div class="clock">
-      <div id="clock-time">--:--:--</div>
-      <div id="clock-date">--/--/----</div>
+    <div id="info">
+      <div class="info-item">
+        <span class="info-label">Server</span>
+        <span id="server-address" class="info-value">--</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Path</span>
+        <span class="info-value">/livedji/</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Protocol</span>
+        <span class="info-value">WebRTC (WHEP)</span>
+      </div>
+      <div id="credit">GitHub: BunnyChen-DJI-RTPM · by BunnyChen</div>
     </div>
   </div>
-
-  <!-- Bottom bar -->
-  <div id="bottombar">
-    <div class="info-item">
-      <span class="info-label">Server</span>
-      <span id="server-address" class="info-value">--</span>
-    </div>
-    <div class="info-item">
-      <span class="info-label">Path</span>
-      <span class="info-value">/livedji/</span>
-    </div>
-    <div class="info-item">
-      <span class="info-label">Protocol</span>
-      <span class="info-value">WebRTC (WHEP)</span>
-    </div>
-  </div>
-
-  <!-- Credit: project repo + author -->
-  <div id="credit">GitHub: BunnyChen-DJI-RTPM · by BunnyChen</div>
 
   <script>
     // ===== Set iframe src dynamically =====
@@ -235,32 +215,8 @@
     checkStatus();
     setInterval(checkStatus, 5000);
 
-    // ===== Overlays auto-hide (keeps video unobstructed) =====
-    // Fade out after 3s idle; hover the top/bottom/credit bar or interact to bring back
-    const uiEls = [topbar, bottombar, document.getElementById("credit")];
-    let uiTimer = null;
-
-    function uiShow(keep) {
-      uiEls.forEach(function (el) { el.classList.remove("ui-hidden"); });
-      clearTimeout(uiTimer);
-      if (!keep) { uiTimer = setTimeout(uiHide, 3000); }
-    }
-    function uiHide() {
-      uiEls.forEach(function (el) { el.classList.add("ui-hidden"); });
-    }
-
-    uiEls.forEach(function (el) {
-      el.addEventListener("mouseenter", function () { uiShow(true); });
-      el.addEventListener("mouseleave", function () {
-        clearTimeout(uiTimer);
-        uiTimer = setTimeout(uiHide, 1500);
-      });
-    });
-
-    window.addEventListener("mousemove", function () { uiShow(false); });
-    window.addEventListener("touchstart", function () { uiShow(false); });
-
-    uiShow(false); // show initially, auto-fade after 3s
+    // Info overlay is intentionally ALWAYS visible. The screen bottom is kept
+    // clear so the player's own controls (fullscreen etc.) are never covered.
   </script>
 </body>
 </html>

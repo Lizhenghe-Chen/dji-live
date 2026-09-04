@@ -17,6 +17,8 @@
 powershell -ExecutionPolicy Bypass -File server\serve.ps1
 ```
 
+> 关闭启动窗口只停观看页，MediaMTX 仍在后台运行；全部停止见 [README](../README.md)「停止与后台运行」、日志在 `server/mediamtx.log`。
+
 ## 二、Windows 排障
 
 DJI Fly 配置 / 观看方式 / VLC / 通用问题（只有音频没视频、VLC 无法打开、延迟大）见 [README](../README.md)。
@@ -30,4 +32,4 @@ DJI Fly 配置 / 观看方式 / VLC / 通用问题（只有音频没视频、VLC
      New-NetFirewallRule -DisplayName "MediaMTX WebRTC" -Direction Inbound -Protocol UDP -LocalPort 8189 -Action Allow
      ```
    - IP 选遥控器所在网络的网卡 IP
-   - 看 MediaMTX 日志确认实际 path
+   - 看 MediaMTX 日志确认实际 path（`server\mediamtx.log`）
