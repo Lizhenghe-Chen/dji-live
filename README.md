@@ -11,7 +11,16 @@
 - MediaMTX 服务端已随项目内置，无需单独安装
 - 观看页不依赖 CDN、npm 或外部网络，局域网内即可使用
 
-唯一例外是 **Intel Mac**：由于系统架构不同，需要按下方说明额外下载一次 Intel 版 MediaMTX；Apple Silicon Mac 和 Windows 均可直接使用。
+仅 **Intel Mac** 需额外下载对应版本，见下表。
+
+## 组件就位情况
+
+| 组件              | Windows   | macOS Apple Silicon | macOS Intel   |
+| ----------------- | --------- | ------------------- | ------------- |
+| MediaMTX 服务端   | ✅ 已内置 | ✅ 已内置           | ⬇️ 按需下载 |
+| 观看页 / 启动脚本 | ✅ 已内置 | ✅ 已内置           | ✅ 已内置     |
+
+> **macOS Intel 用户**：下载 `mediamtx_v1.20.1_darwin_amd64.tar.gz`（[官方 Releases](https://github.com/bluenviron/mediamtx/releases) v1.20.1），解压整个目录到 `server/mediamtx_v1.20.1_darwin_amd64/`；启动脚本自动识别芯片，无需改代码。
 
 ## 整体流程
 
@@ -33,22 +42,13 @@ flowchart TD
     G --> H["任意设备浏览器打开 WATCH 观看"]
 ```
 
-## 组件就位情况
-
-| 组件              | Windows   | macOS Apple Silicon | macOS Intel   |
-| ----------------- | --------- | ------------------- | ------------- |
-| MediaMTX 服务端   | ✅ 已内置 | ✅ 已内置           | ⬇️ 按需下载 |
-| 观看页 / 启动脚本 | ✅ 已内置 | ✅ 已内置           | ✅ 已内置     |
-
-> **macOS Intel 用户**：下载 `mediamtx_v1.20.1_darwin_amd64.tar.gz`（[官方 Releases](https://github.com/bluenviron/mediamtx/releases) v1.20.1），解压整个目录到 `server/mediamtx_v1.20.1_darwin_amd64/`；启动脚本自动识别芯片，无需改代码。
-
 ## 快速开始
 
-1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`，这不是安装依赖）
+1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`）
 2. 控制台打印所有地址（标注网络接口）：
    - `WATCH` → 打开观看直播
    - `SERVER` + `STREAM KEY` → 填入 DJI Fly
-3. DJI Fly → 自定义 RTMP：`SERVER` 填 `rtmp://<电脑IP>/`（**默认不带端口号**，不填即用默认 1935），`STREAM KEY` 填 `livedji`
+3. DJI Fly 填入地址与推流码（见下方「DJI Fly 配置」）
 4. 任意设备浏览器打开 `WATCH` 地址观看
 
 > 具体地址以控制台输出为准（每个 IP 标注了对应网络接口）。
@@ -57,32 +57,18 @@ flowchart TD
 
 ### 硬件设备
 
-**必要**：
-
 - **大疆无人机 + 遥控器**：DJI Fly 已安装；无人机需**连接 / 起飞**才有画面
 - **麦克风**：Type-C 耳机 / 蓝牙耳机，**接入遥控器**才能开播
 - **电脑**：运行直播服务端（Windows / macOS）
 - **观看设备**：手机 / 平板 / 电脑，浏览器打开观看页
 
-**可选**：
-
-- **备用电池 / 移动电源**：延长无人机 / 遥控器续航
-- **网线**：电脑有线连接，网络更稳定
-- **外接大屏 / 电视**：更大画面的观看体验
-
 ### 推流软件
-
-**必要**：
 
 - **DJI Fly**：遥控器上的大疆 App，内置 RTMP 推流；在**图传**设置里「自定义 RTMP」填入 SERVER + STREAM KEY 即可开播
 
-**可选**：
-
-- **OBS Studio， [VLC](https://images.videolan.org/vlc/index.zh_CN.html)**：通用推流软件，可代替 DJI 推流做测试或其它直播场景
-
 ### 系统准备
 
-- **macOS 首次**：`chmod +x start_macos.command`；被 Gatekeeper 拦截时执行 `xattr -dr com.apple.quarantine start_macos.command`
+- **Gatekeeper（macOS）**：双击被拦截无法打开时，执行 `xattr -dr com.apple.quarantine start_macos.command`
 - **防火墙**：首次运行弹窗点「允许」（macOS），或放行相关端口（Windows 见排障指南）
 - **网络**：遥控器与电脑需**同一 Wi-Fi 或同一手机热点**（无需外网）
 
@@ -97,7 +83,6 @@ flowchart TD
 
 - 电脑 IP 选遥控器所在网络的那个（控制台已标注接口）
 - 拼接结果等价 `rtmp://<电脑IP>:1935/livedji`
-- 实际 path 以 MediaMTX 日志为准
 
 ## 观看方式
 
@@ -137,12 +122,8 @@ RTPM/
 │   ├── index.html     ← 观看页（状态 / 时钟 / 署名，自动隐藏）
 │   ├── mediamtx_v1.20.1_windows_amd64/          ← 已内置
 │   └── mediamtx_v1.20.1_darwin_arm64/           ← 已内置（Apple Silicon）
-└── docs/
-    ├── DJI_RTMP直播搭建与排障指南_Windows版.md
-    └── DJI_RTMP直播搭建与排障指南_macOS版.md
+└── docs/            ← 排障指南（见下方「文档」）
 ```
-
-> Intel Mac：按上方「组件就位情况」下载 amd64 版，解压到 `server/mediamtx_v1.20.1_darwin_amd64/`。
 
 ## 文档
 
