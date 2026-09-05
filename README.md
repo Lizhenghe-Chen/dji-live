@@ -1,6 +1,19 @@
-# BunnyChen-DJI-RTPM
+# dji-live
 
 大疆无人机 RTMP 低延迟直播：**一键启动即可开播、观看**（Windows / macOS）。
+
+> **免责声明**：本项目为第三方开源工具，与 DJI（大疆创新）官方无任何关联，未获其授权或认可。「DJI」「大疆」为深圳市大疆创新科技有限公司的注册商标。
+
+## 为什么做这个
+
+DJI Fly 自带「自定义 RTMP」推流，但官方只让你填一个地址——**服务端要自己搭**，对普通用户门槛很高。本项目把这件事压缩成「双击一个脚本」：
+
+- **零依赖**：内置 MediaMTX 服务端，观看页用系统自带的 PowerShell / `nc` 托管，无需安装 Python / Node / Docker
+- **一键启动**：控制台直接打印 DJI Fly 要填的地址和观看链接
+- **自带观看页**：WebRTC 低延迟播放，带在线状态 / 时钟，浏览器打开即看
+- **完整排障文档**：覆盖防火墙、「只有音频没视频」等常见坑
+
+典型场景：飞无人机时让旁人用手机 / 平板实时看画面、活动现场把航拍画面投到大屏、局域网多设备同时观看——全程无需外网、无需直播平台账号。
 
 ## 项目特色：无需额外依赖
 
@@ -72,6 +85,8 @@ flowchart TD
 - **防火墙**：首次运行弹窗点「允许」（macOS），或放行相关端口（Windows 见排障指南）
 - **网络**：遥控器与电脑需**同一 Wi-Fi 或同一手机热点**（无需外网）
 
+> **安全提示**：默认配置不校验推流 / 观看身份（MediaMTX `user: any` 无密码），适用于**可信局域网**。请勿将 1935 / 8080 / 8888 / 8889 等端口直接暴露到公网；确有公网需求时，先在 `server/mediamtx_v1.20.1_*_*/mediamtx.yml` 的 `authInternalUsers` 中配置用户名密码，或改用加密协议（RTMPS / WebRTC over HTTPS）。
+
 ## DJI Fly 配置（遥控器）
 
 自定义 RTMP，两种填法等价，任选其一：
@@ -137,6 +152,16 @@ RTPM/
 │   └── mediamtx_v1.20.1_darwin_arm64/           ← 已内置（Apple Silicon）
 └── docs/            ← 排障指南（见下方「文档」）
 ```
+
+## 第三方组件
+
+本项目内置了以下第三方组件，感谢其作者与社区：
+
+| 组件 | 版本 | 许可证 | 说明 |
+| --- | --- | --- | --- |
+| [MediaMTX](https://github.com/bluenviron/mediamtx) | v1.20.1 | [MIT](https://github.com/bluenviron/mediamtx/blob/main/LICENSE) | 流媒体服务端，负责 RTMP 收流与 WebRTC / HLS 分发（各平台目录内已附带其 LICENSE） |
+
+本项目自身代码与文档采用 [MIT License](./LICENSE)。
 
 ## 文档
 

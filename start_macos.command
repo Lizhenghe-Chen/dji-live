@@ -27,7 +27,7 @@ is_mtx_running() {
 }
 
 is_web_server_running() {
-  curl --max-time 1 -fsS "http://127.0.0.1:$PORT/" | grep -q "<title>BunnyChen DJI Live</title>"
+  curl --max-time 1 -fsS "http://127.0.0.1:$PORT/" | grep -q "<title>dji-live</title>"
 }
 
 start_web_server() {
