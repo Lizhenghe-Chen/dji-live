@@ -1,37 +1,14 @@
-# One-click launcher: starts MediaMTX + hosts DJI live page
+# One-click launcher: starts MediaMTX + hosts DJI live page in this window
 # Run:  powershell -ExecutionPolicy Bypass -File serve.ps1
 # Then open http://<this-ip>:8080/ on any device on the same LAN
 
 $ErrorActionPreference = "Stop"
 
-# ---------- 1. Ensure MediaMTX is running (RTMP in :1935) ----------
+# ---------- paths and process state ----------
 $mtxDir = Join-Path $PSScriptRoot "mediamtx_v1.20.1_windows_amd64"
 $mtxExe = Join-Path $mtxDir "mediamtx.exe"
-
-if (Get-Process -Name "mediamtx" -ErrorAction SilentlyContinue) {
-    Write-Host "[1/2] MediaMTX already running" -ForegroundColor Green
-} else {
-    Write-Host "[1/2] Starting MediaMTX..." -ForegroundColor Yellow
-    $mtxLog = Join-Path $PSScriptRoot "mediamtx.log"
-    $mtxErrLog = Join-Path $PSScriptRoot "mediamtx.err.log"
-    Start-Process -FilePath $mtxExe -WorkingDirectory $mtxDir `
-        -RedirectStandardOutput $mtxLog -RedirectStandardError $mtxErrLog
-    $ready = $false
-    for ($i = 0; $i -lt 40; $i++) {
-        Start-Sleep -Milliseconds 500
-        if (Get-NetTCPConnection -LocalPort 1935 -State Listen -ErrorAction SilentlyContinue) {
-            $ready = $true
-            break
-        }
-    }
-    if (-not $ready) {
-        Write-Host "MediaMTX failed to start (port 1935 not listening)" -ForegroundColor Red
-        exit 1
-    }
-    Write-Host "      MediaMTX is up (RTMP :1935, WebRTC :8889, HLS :8888)" -ForegroundColor Green
-}
-
-# ---------- 2. Host the live page ----------
+$mtxProcess = $null
+$listener = $null
 $port = 8080
 $file = Join-Path $PSScriptRoot "index.html"
 
@@ -67,38 +44,63 @@ function Show-Steps {
     Write-Host ""
 }
 
-if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
-    Write-Host "[2/2] Web server already running on port $port (skip)" -ForegroundColor Yellow
-    Show-Steps
-    Write-Host "  Services are running in the background." -ForegroundColor Yellow
-    Write-Host "  - stop all:  double-click stop_windows.bat" -ForegroundColor Yellow
-    Write-Host "  - logs:      server\mediamtx.log" -ForegroundColor Yellow
-    Write-Host "  - after a reboot, run start_windows.bat again." -ForegroundColor Yellow
-    Write-Host ""
-    while ($true) { Start-Sleep -Seconds 3600 }
-}
-
-$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
-$listener.Start()
-
-Write-Host "[2/2] Live page ready" -ForegroundColor Green
-Show-Steps
-Write-Host "Closing this window stops the watch page only;" -ForegroundColor Yellow
-Write-Host "MediaMTX keeps running in the background (logs: server\mediamtx.log)." -ForegroundColor Yellow
-Write-Host "To stop everything: double-click stop_windows.bat" -ForegroundColor Yellow
-
-while ($true) {
-    $client = $listener.AcceptTcpClient()
-    $stream = $client.GetStream()
-    $reader = [System.IO.StreamReader]::new($stream)
-    $requestLine = $reader.ReadLine()
-    if ($null -ne $requestLine) {
-        # Read per request so index.html edits apply on next refresh (no restart)
-        $body = [System.IO.File]::ReadAllBytes($file)
-        $header = "HTTP/1.1 200 OK`r`nContent-Type: text/html; charset=utf-8`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n"
-        $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
-        $stream.Write($headerBytes, 0, $headerBytes.Length)
-        $stream.Write($body, 0, $body.Length)
+try {
+    # ---------- 1. start MediaMTX (RTMP :1935) ----------
+    if (Get-NetTCPConnection -LocalPort 1935 -State Listen -ErrorAction SilentlyContinue) {
+        throw "Port 1935 is already in use. Close the existing service before starting DJI Live."
     }
-    $client.Close()
+
+    Write-Host "[1/2] Starting MediaMTX..." -ForegroundColor Yellow
+    $mtxLog = Join-Path $PSScriptRoot "mediamtx.log"
+    $mtxErrLog = Join-Path $PSScriptRoot "mediamtx.err.log"
+    $mtxProcess = Start-Process -FilePath $mtxExe -WorkingDirectory $mtxDir -PassThru `
+        -RedirectStandardOutput $mtxLog -RedirectStandardError $mtxErrLog
+    $ready = $false
+    for ($i = 0; $i -lt 40; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (Get-NetTCPConnection -LocalPort 1935 -State Listen -ErrorAction SilentlyContinue) {
+            $ready = $true
+            break
+        }
+    }
+    if (-not $ready) {
+        throw "MediaMTX failed to start (port 1935 not listening)."
+    }
+    Write-Host "      MediaMTX is up (RTMP :1935, WebRTC :8889, HLS :8888)" -ForegroundColor Green
+
+    # ---------- 2. host the live page ----------
+    if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
+        throw "Port $port is already in use. Close the existing service before starting DJI Live."
+    }
+
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
+    $listener.Start()
+
+    Write-Host "[2/2] Live page ready" -ForegroundColor Green
+    Show-Steps
+    Write-Host "Keep this window open while streaming." -ForegroundColor Yellow
+    Write-Host "Closing it or pressing Ctrl+C stops MediaMTX and the watch page." -ForegroundColor Yellow
+
+    while ($true) {
+        $client = $listener.AcceptTcpClient()
+        $stream = $client.GetStream()
+        $reader = [System.IO.StreamReader]::new($stream)
+        $requestLine = $reader.ReadLine()
+        if ($null -ne $requestLine) {
+            # Read per request so index.html edits apply on next refresh (no restart)
+            $body = [System.IO.File]::ReadAllBytes($file)
+            $header = "HTTP/1.1 200 OK`r`nContent-Type: text/html; charset=utf-8`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n"
+            $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
+            $stream.Write($headerBytes, 0, $headerBytes.Length)
+            $stream.Write($body, 0, $body.Length)
+        }
+        $client.Close()
+    }
+} finally {
+    if ($listener) {
+        $listener.Stop()
+    }
+    if ($mtxProcess -and -not $mtxProcess.HasExited) {
+        Stop-Process -Id $mtxProcess.Id -Force -ErrorAction SilentlyContinue
+    }
 }

@@ -17,7 +17,7 @@
 powershell -ExecutionPolicy Bypass -File server\serve.ps1
 ```
 
-> 关闭启动窗口只停观看页，MediaMTX 仍在后台运行；全部停止见 [README](../README.md)「停止与后台运行」、日志在 `server/mediamtx.log`。
+> 启动窗口会在直播期间保持打开。关闭窗口或按 `Ctrl+C` 会同时停止 MediaMTX 与观看页；日志在 `server/mediamtx.log`。
 
 ## 二、Windows 排障
 

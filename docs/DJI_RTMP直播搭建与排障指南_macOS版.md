@@ -42,7 +42,7 @@ chmod +x start_macos.command
 3. 用 macOS 自带 nc（netcat）托管观看页（:8080），零安装
 4. 打印全部地址（标注接口，en0 通常为 Wi-Fi）
 
-关闭窗口后服务仍在后台运行。全部停止见 [README](../README.md)「停止与后台运行」；排障日志位于 `server/mediamtx.log`。
+启动窗口会在直播期间保持打开。关闭窗口或按 `Ctrl+C` 会同时停止 MediaMTX 与观看页；排障日志位于 `server/mediamtx.log`。
 
 ## 三、遥控器（DJI Fly）配置
 

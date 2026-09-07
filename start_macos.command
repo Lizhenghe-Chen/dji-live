@@ -1,13 +1,10 @@
 #!/bin/bash
 # One-click launcher for macOS: starts MediaMTX + hosts the DJI live page
-# Double-click this file (or: chmod +x start.command && ./start.command)
-# Servers keep running in the background after this window closes.
+# Double-click this file (or: chmod +x start_macos.command && ./start_macos.command)
+# Keep this Terminal window open while streaming. Closing it stops both services.
 
 set -e
 cd "$(dirname "$0")"
-
-# MediaMTX log file (runtime artifact, kept in server/)
-MTX_LOG="$PWD/server/mediamtx.log"
 
 # ---------- locate macOS MediaMTX (auto-detect chip) ----------
 ARCH=$(uname -m)
@@ -20,10 +17,6 @@ MTX_EXE="$MTX_DIR/mediamtx"
 
 listener_command() {
   lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -n 1 | xargs -I {} ps -p {} -o comm= 2>/dev/null
-}
-
-is_mtx_running() {
-  [ "$(basename "$(listener_command 1935)")" = "mediamtx" ]
 }
 
 is_web_server_running() {
@@ -45,7 +38,7 @@ start_web_server() {
 
   # Content-Length is recomputed on every request, so edits to index.html
   # apply on the next page refresh (no server restart needed).
-  nohup bash -c '
+  bash -c '
     PORT="$1"
     INDEX_FILE="$2"
     while true; do
@@ -58,8 +51,18 @@ start_web_server() {
         cat "$INDEX_FILE"
       } | nc -l "$PORT" >/dev/null 2>&1
     done
-  ' _ "$PORT" "$index_file" >/dev/null 2>&1 &
+  ' _ "$PORT" "$index_file" &
+  WEB_PID=$!
 }
+
+cleanup() {
+  trap - EXIT INT TERM
+  [ -n "${WEB_PID:-}" ] && kill "$WEB_PID" 2>/dev/null
+  [ -n "${MTX_PID:-}" ] && kill "$MTX_PID" 2>/dev/null
+}
+
+trap cleanup EXIT
+trap 'exit 0' INT TERM
 
 if [ ! -x "$MTX_EXE" ]; then
   echo "==============================================================="
@@ -75,22 +78,21 @@ if [ ! -x "$MTX_EXE" ]; then
   exit 1
 fi
 
-# ---------- 1. start MediaMTX if not running (RTMP :1935) ----------
+# ---------- 1. start MediaMTX (RTMP :1935) ----------
 echo "[1/2] MediaMTX ..."
-if is_mtx_running; then
-  echo "      already running"
-elif lsof -iTCP:1935 -sTCP:LISTEN >/dev/null 2>&1; then
+if lsof -iTCP:1935 -sTCP:LISTEN >/dev/null 2>&1; then
   echo "ERROR: port 1935 is in use by $(listener_command 1935)"
   read -n 1 -s -r -p "Press any key to close"
   exit 1
 else
   chmod +x "$MTX_EXE"
-  (cd "$MTX_DIR" && nohup ./mediamtx >"$MTX_LOG" 2>&1 &)
+  (cd "$MTX_DIR" && exec ./mediamtx) &
+  MTX_PID=$!
   for i in $(seq 1 20); do
     sleep 0.5
-    is_mtx_running && break
+    lsof -iTCP:1935 -sTCP:LISTEN >/dev/null 2>&1 && break
   done
-  if ! is_mtx_running; then
+  if ! lsof -iTCP:1935 -sTCP:LISTEN >/dev/null 2>&1; then
     echo "ERROR: MediaMTX failed to start (port 1935 not listening)"
     read -n 1 -s -r -p "Press any key to close"
     exit 1
@@ -101,13 +103,9 @@ fi
 # ---------- 2. host the live page (built-in nc, no extra dependency) ----------
 PORT=8080
 if lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
-  if is_web_server_running; then
-    echo "[2/2] Web server already running on port $PORT"
-  else
-    echo "ERROR: port $PORT is in use by $(listener_command $PORT)"
-    read -n 1 -s -r -p "Press any key to close"
-    exit 1
-  fi
+  echo "ERROR: port $PORT is in use by $(listener_command $PORT)"
+  read -n 1 -s -r -p "Press any key to close"
+  exit 1
 else
   echo "[2/2] Starting web server ..."
   start_web_server
@@ -155,8 +153,7 @@ echo "          WATCH page - stream appears within ~5s."
 echo ""
 echo "  Tip: also open on this Mac:  http://127.0.0.1:$PORT/"
 echo ""
-echo "  Services keep running in the background after this window closes."
-echo "  - stop all:   double-click stop_macos.command"
-echo "  - view logs:  server/mediamtx.log"
-echo "  - after reboot, double-click start_macos.command again."
-read -n 1 -s -r -p "Press any key to close this window"
+echo "  Keep this Terminal window open while streaming."
+echo "  Closing it stops MediaMTX and the watch page."
+echo "  Press Ctrl+C to stop both services."
+wait "$MTX_PID"
