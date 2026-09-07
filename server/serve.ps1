@@ -42,6 +42,8 @@ function Show-Steps {
     Write-Host "  Tip: also open the WATCH page on this PC:" -ForegroundColor Yellow
     Write-Host "    http://127.0.0.1:8080/" -ForegroundColor Cyan
     Write-Host ""
+    Write-Host "  dji-live | by BunnyChen | https://github.com/Lizhenghe-Chen/dji-live" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 try {
@@ -82,6 +84,11 @@ try {
     Write-Host "Closing it or pressing Ctrl+C stops MediaMTX and the watch page." -ForegroundColor Yellow
 
     while ($true) {
+        if (-not $listener.Pending()) {
+            Start-Sleep -Milliseconds 100
+            continue
+        }
+
         $client = $listener.AcceptTcpClient()
         $stream = $client.GetStream()
         $reader = [System.IO.StreamReader]::new($stream)
