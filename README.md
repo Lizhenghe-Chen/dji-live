@@ -1,8 +1,22 @@
 # dji-live
 
+![Version](https://img.shields.io/badge/version-v1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 大疆无人机 RTMP 低延迟直播：**一键启动即可开播、观看**（Windows / macOS）。
 
 > **免责声明**：本项目为第三方开源工具，与 DJI（大疆创新）官方无任何关联，未获其授权或认可。「DJI」「大疆」为深圳市大疆创新科技有限公司的注册商标。
+
+## 下载方式
+
+- **推荐**：直接到 [Releases](https://github.com/Lizhenghe-Chen/dji-live/releases) 下载最新版本的源码压缩包（Source code zip / tar.gz），解压即可使用。
+- 也可以直接 `git clone` 本仓库，效果相同：
+
+  ```bash
+  git clone https://github.com/Lizhenghe-Chen/dji-live.git
+  ```
+
+> 两种方式拿到的都是同一份代码，按需选择即可。
 
 ## 为什么做这个
 
