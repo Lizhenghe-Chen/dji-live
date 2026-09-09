@@ -1,0 +1,86 @@
+# ────────────────────────────────────────────────────────────
+# 自动发布 · dji-live
+# 触发：推送 v*.*.* 格式 tag（如 v1.0.1）
+# 流程：提取上一个 tag → 按 Conventional Commit 生成 changelog → 自动创建 Release
+#
+# 说明：纯脚本项目，无编译产物。Release 自动附带源码 zip/tar.gz，
+#       changelog 由 CI 从 git log 自动生成，无需手动维护 CHANGELOG 文件。
+# ────────────────────────────────────────────────────────────
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # ── 生成 changelog：上一个 tag 到当前 tag 的提交，按类型分组 ──
+      - name: Generate changelog from git log
+        id: changelog
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # 找上一个 tag（首个 Release 时退回初始 commit）
+          PREV_TAG=$(git tag --sort=-creatordate | grep -v "^${TAG}$" | head -1 || true)
+          if [ -z "${PREV_TAG}" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          echo "Comparing ${PREV_TAG}..${TAG}"
+
+          # $1=分组标题  $2=Conventional Commit 前缀（正则）
+          gen() {
+            local items
+            items=$(git log --no-merges --pretty=format:"%s" "${PREV_TAG}..HEAD" \
+              | grep -E "^$2" \
+              | sed -E "s/^$2:?[[:space:]]*//" \
+              | sed 's/^/- /')
+            if [ -n "$items" ]; then
+              printf '### %s\n\n%s\n\n' "$1" "$items"
+            fi
+          }
+
+          {
+            echo "# dji-live ${TAG}"
+            echo ""
+            echo "## 📋 变更记录"
+            echo ""
+            gen "✨ 新功能" "feat"
+            gen "🐛 修复" "fix"
+            gen "📝 文档" "docs"
+            gen "♻️ 重构" "refactor"
+            gen "⚡ 性能" "perf"
+            gen "🔧 其他" "(chore|build|ci|style|test)"
+            # 未加前缀的提交
+            other=$(git log --no-merges --pretty=format:"%s" "${PREV_TAG}..HEAD" \
+              | grep -vE "^(feat|fix|docs|refactor|perf|chore|build|ci|style|test)[:：(]" \
+              | sed 's/^/- /')
+            if [ -n "$other" ]; then
+              printf '### 🧩 其他\n\n%s\n\n' "$other"
+            fi
+          } > release-notes.md
+
+          cat release-notes.md
+          echo "path=release-notes.md" >> "$GITHUB_OUTPUT"
+
+      # ── 创建 Release（title 默认取 tag 名，自动附带源码 zip/tar.gz）──
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          body_path: ${{ steps.changelog.outputs.path }}
+          draft: false
+          prerelease: false
