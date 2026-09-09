@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-v1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-大疆无人机 RTMP 低延迟直播：**一键启动即可开播、观看**（Windows / macOS）。
+用于在局域网内接收 DJI Fly 的 RTMP 推流，并通过浏览器低延迟观看（Windows / macOS）。
 
 > **免责声明**：本项目为第三方开源工具，与 DJI（大疆创新）官方无任何关联，未获其授权或认可。「DJI」「大疆」为深圳市大疆创新科技有限公司的注册商标。
 
@@ -18,27 +18,11 @@
 
 > 两种方式拿到的都是同一份代码，按需选择即可。
 
-## 为什么做这个
+## 适用场景
 
-DJI Fly 自带「自定义 RTMP」推流，但官方只让你填一个地址——**服务端要自己搭**，对普通用户门槛很高。本项目把这件事压缩成「双击一个脚本」：
+DJI Fly 支持「自定义 RTMP」，但需要自行提供接收服务。本项目内置 MediaMTX，并提供启动脚本和观看页，适合在同一 Wi-Fi 或手机热点内把飞行画面分享给手机、平板、电脑或现场大屏。
 
-- **零依赖**：内置 MediaMTX 服务端，观看页用系统自带的 PowerShell / `nc` 托管，无需安装 Python / Node / Docker
-- **一键启动**：控制台直接打印 DJI Fly 要填的地址和观看链接
-- **自带观看页**：WebRTC 低延迟播放，带在线状态 / 时钟，浏览器打开即看
-- **完整排障文档**：覆盖防火墙、「只有音频没视频」等常见坑
-
-典型场景：飞无人机时让旁人用手机 / 平板实时看画面、活动现场把航拍画面投到大屏、局域网多设备同时观看——全程无需外网、无需直播平台账号。
-
-## 项目特色：无需额外依赖
-
-下载项目后即可运行，**不需要安装 Python、Node.js、npm、Docker 或其它开发环境**：
-
-- Windows 使用系统自带的 PowerShell / .NET 托管观看页
-- macOS 使用系统自带的 `nc`（netcat）托管观看页
-- MediaMTX 服务端已随项目内置，无需单独安装
-- 观看页不依赖 CDN、npm 或外部网络，局域网内即可使用
-
-仅 **Intel Mac** 需额外下载对应版本，见下表。
+项目不依赖 Python、Node.js、npm 或 Docker：Windows 使用系统自带的 PowerShell / .NET，macOS 使用系统自带的 `nc` 托管观看页。观看页和服务端均可在无外网的局域网中使用。
 
 ## 组件就位情况
 
@@ -47,7 +31,7 @@ DJI Fly 自带「自定义 RTMP」推流，但官方只让你填一个地址—�
 | MediaMTX 服务端   | ✅ 已内置 | ✅ 已内置           | ⬇️ 按需下载 |
 | 观看页 / 启动脚本 | ✅ 已内置 | ✅ 已内置           | ✅ 已内置     |
 
-> **macOS Intel 用户**：下载 `mediamtx_v1.20.1_darwin_amd64.tar.gz`（[官方 Releases](https://github.com/bluenviron/mediamtx/releases) v1.20.1），解压整个目录到 `server/mediamtx_v1.20.1_darwin_amd64/`；启动脚本自动识别芯片，无需改代码。
+> **macOS Intel 用户**：下载 `mediamtx_v1.20.1_darwin_amd64.tar.gz`（[官方 Releases](https://github.com/bluenviron/mediamtx/releases) v1.20.1），解压后将整个目录放到 `server/mediamtx_v1.20.1_darwin_amd64/`。启动脚本会自动选择对应版本。
 
 ## 整体流程
 
@@ -71,12 +55,12 @@ flowchart TD
 
 ## 快速开始
 
-1. **启动**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次先 `chmod +x start_macos.command`）
-2. 控制台打印所有地址（标注网络接口）：
+1. **启动服务**：Windows 双击 `start_windows.bat`；macOS 双击 `start_macos.command`（首次可先执行 `chmod +x start_macos.command`）。
+2. 在控制台查看脚本打印的地址；每个地址会标注所属网络接口：
    - `WATCH` → 打开观看直播
    - `SERVER` + `STREAM KEY` → 填入 DJI Fly
-3. DJI Fly 填入地址与推流码（见下方「DJI Fly 配置」）
-4. 任意设备浏览器打开 `WATCH` 地址观看
+3. 在 DJI Fly 填入服务器地址与推流码，见下方「DJI Fly 配置」。
+4. 使用任意同网设备的浏览器打开 `WATCH` 地址。
 
 > 具体地址以控制台输出为准（每个 IP 标注了对应网络接口）。
 
@@ -97,7 +81,7 @@ flowchart TD
 
 - **Gatekeeper（macOS）**：双击被拦截无法打开时，执行 `xattr -dr com.apple.quarantine start_macos.command`
 - **防火墙**：首次运行弹窗点「允许」（macOS），或放行相关端口（Windows 见排障指南）
-- **网络**：遥控器与电脑需**同一 Wi-Fi 或同一手机热点**（无需外网）
+- **网络**：遥控器与电脑需连接同一 Wi-Fi 或同一手机热点；运行与观看不需要外网
 
 > **安全提示**：默认配置不校验推流 / 观看身份（MediaMTX `user: any` 无密码），适用于**可信局域网**。请勿将 1935 / 8080 / 8888 / 8889 等端口直接暴露到公网；确有公网需求时，先在 `server/mediamtx_v1.20.1_*_*/mediamtx.yml` 的 `authInternalUsers` 中配置用户名密码，或改用加密协议（RTMPS / WebRTC over HTTPS）。
 
@@ -117,7 +101,7 @@ flowchart TD
 
 | 方式                 | 地址                                        | 延迟                       |
 | -------------------- | ------------------------------------------- | -------------------------- |
-| 自定义观看页（推荐） | `http://<电脑IP>:8080/`                   | 低（含状态 / 时钟 / 署名） |
+| 自定义观看页 | `http://<电脑IP>:8080/`                   | 低（含状态 / 时钟 / 署名） |
 | WebRTC               | `http://<电脑IP>:8889/livedji`            | 最低                       |
 | HLS                  | `http://<电脑IP>:8888/livedji/index.m3u8` | 最高                       |
 
@@ -138,7 +122,7 @@ VLC `Ctrl+N`（媒体 → 打开网络串流）粘贴地址：
 - 关闭启动窗口或按 `Ctrl+C`，会同时停止 MediaMTX 与观看页
 - 停止后重新双击启动脚本即可再次启动
 - **重复启动会自动重启**：即使上次的服务没关干净，再次双击启动脚本也会先自动停掉本项目的残留服务（MediaMTX / 观看页）再全新启动，不会提示「端口被占用」；仅当 1935 / 8080 被**其它**软件占用时才会报错，请先关闭该软件
-- **排障日志**：`server/mediamtx.log`（Windows 另有 `mediamtx.err.log`）
+- **排障日志**：查看 `server/mediamtx.log`；Windows 还会生成 `mediamtx.err.log`
 
 ## 常见问题
 
@@ -148,7 +132,7 @@ VLC `Ctrl+N`（媒体 → 打开网络串流）粘贴地址：
   1. 先定位卡在哪一环：**所有**观看端都卡（含电脑本机）→ 通常是「遥控器 → 电脑」这段图传推流链路；只有**某一台**设备卡 → 是那台设备自己的 Wi-Fi 问题
   2. 推流端（DJI Fly）：调低图传清晰度 / 码率（帧率保持 30 即可），这是最有效的办法；远离路由器、微波炉等干扰源，缩短与遥控器的距离
   3. 观看端：尽量用 5GHz Wi-Fi 并靠近路由器；同一网络同时观看的人越多，每路越容易卡
-  4. 本项目观看页已是低延迟的 WebRTC 路径；VLC / HLS 的延迟与卡顿风险更高，只作备用
+  4. 自带观看页使用 WebRTC；VLC / HLS 适合作为兼容性备用方案，但通常延迟更高
 - **遥控器提示检查 RTMP 地址 / 推流码**：见对应平台的防火墙与日志排障（[macOS](./docs/DJI_RTMP直播搭建与排障指南_macOS版.md) / [Windows](./docs/DJI_RTMP直播搭建与排障指南_Windows版.md)）
 
 ## 文件结构

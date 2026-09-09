@@ -1,15 +1,15 @@
 # DJI 无人机 RTMP 直播搭建与排障指南（Windows）
 
-> 环境：Windows + MediaMTX v1.20.1（本仓库 `server/mediamtx_v1.20.1_windows_amd64`）+ DJI Fly 遥控器。
-> ✅ Windows 版 MediaMTX 已随仓库内置，**无需下载**，开箱即用。
+> 适用环境：Windows、MediaMTX v1.20.1（本仓库 `server/mediamtx_v1.20.1_windows_amd64`）和安装 DJI Fly 的遥控器。
+> Windows 版 MediaMTX 已随仓库提供，无需单独下载。
 
-本项目不需要安装 Python、Node.js、npm、Docker 或其它运行环境。Windows 版使用系统自带的 PowerShell / .NET 托管观看页。
+Windows 使用系统自带的 PowerShell / .NET 托管观看页，不需要额外安装 Python、Node.js、npm 或 Docker。
 
 > 通用准备（硬件设备 / 推流软件 / 网络：同一 Wi-Fi 或热点）统一见根目录 [README](../README.md)。
 
 ## 一、启动
 
-**推荐：双击根目录 `start_windows.bat`**。自动启动 MediaMTX（RTMP :1935 / WebRTC :8889 / HLS :8888）并托管观看页（:8080），控制台打印全部地址。
+双击根目录的 `start_windows.bat`。脚本会启动 MediaMTX（RTMP :1935 / WebRTC :8889 / HLS :8888）和观看页（:8080），然后打印可用地址。
 
 手动启动：
 
