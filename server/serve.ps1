@@ -46,10 +46,44 @@ function Show-Steps {
     Write-Host ""
 }
 
+function Stop-PreviousRun {
+    # A previous run may still be alive (this window was closed but the
+    # processes kept running). Stop ONLY processes that provably belong to
+    # this project so a double-click relaunch "just works" instead of failing
+    # on busy ports. Unrelated software on the same ports is never touched.
+    # (a) leftover MediaMTX of this project still holding RTMP/WebRTC/HLS:
+    $owned = @()
+    $conns = Get-NetTCPConnection -LocalPort 1935,8888,8889 -State Listen -ErrorAction SilentlyContinue
+    foreach ($c in $conns) {
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$($c.OwningProcess)" -ErrorAction SilentlyContinue
+        if ($p -and $p.Name -eq 'mediamtx.exe' -and $p.CommandLine -like "*$mtxDir*") {
+            $owned += $p.ProcessId
+        }
+    }
+    # (b) leftover watch page = a previous serve.ps1 (PowerShell) on :$port:
+    $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    foreach ($c in $conns) {
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$($c.OwningProcess)" -ErrorAction SilentlyContinue
+        if ($p -and $p.Name -match '^(powershell|pwsh)([.]exe)?$' -and $p.CommandLine -like "*$PSScriptRoot*serve.ps1*") {
+            $owned += $p.ProcessId
+        }
+    }
+    foreach ($id in ($owned | Select-Object -Unique)) {
+        Write-Host "  * stopping leftover service (pid $id) from a previous run" -ForegroundColor Yellow
+        Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
+    }
+    if ($owned) {
+        Start-Sleep -Milliseconds 800
+    }
+}
+
 try {
+    # ---------- 0. clean up leftovers so re-running "just works" ----------
+    Stop-PreviousRun
+
     # ---------- 1. start MediaMTX (RTMP :1935) ----------
     if (Get-NetTCPConnection -LocalPort 1935 -State Listen -ErrorAction SilentlyContinue) {
-        throw "Port 1935 is already in use. Close the existing service before starting DJI Live."
+        throw "Port 1935 is in use by another program (not a leftover dji-live service). Close it first, then run again."
     }
 
     Write-Host "[1/2] Starting MediaMTX..." -ForegroundColor Yellow
@@ -72,7 +106,7 @@ try {
 
     # ---------- 2. host the live page ----------
     if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
-        throw "Port $port is already in use. Close the existing service before starting DJI Live."
+        throw "Port $port is in use by another program (not a leftover dji-live service). Close it first, then run again."
     }
 
     $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)

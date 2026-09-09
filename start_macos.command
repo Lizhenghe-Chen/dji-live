@@ -23,6 +23,64 @@ is_web_server_running() {
   curl --max-time 1 -fsS "http://127.0.0.1:$PORT/" | grep -q "<title>dji-live</title>"
 }
 
+# Stop a leftover MediaMTX from a previous run of this script (the launcher
+# window may have been closed while the process kept running in background).
+# Only the copy whose binary lives inside THIS project is touched, so an
+# unrelated MediaMTX / other software is never killed.
+stop_leftover_mediamtx() {
+  set +e
+  local pid exe
+  for pid in $(pgrep -x mediamtx 2>/dev/null); do
+    [ -z "$pid" ] && continue
+    exe=$(lsof -a -p "$pid" -d txt -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)
+    if [ "${exe#"$PWD/server/mediamtx"}" != "$exe" ]; then
+      echo "  * stopping leftover MediaMTX (pid $pid) from a previous run"
+      kill "$pid" 2>/dev/null
+      sleep 0.5
+    fi
+  done
+  set -e
+}
+
+# Stop a leftover watch page from a previous run: an `nc` chain that is
+# serving THIS project's server/index.html on :8080. It is recognised by
+# walking up the parent chain looking for the launcher's
+# `bash -c ... server/index.html` loop (plus an HTTP fallback for orphans).
+stop_leftover_web() {
+  set +e
+  local pid cur ppid cmd n killed=0
+  for pid in $(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t 2>/dev/null); do
+    [ -z "$pid" ] && continue
+    cur=$pid
+    n=0
+    while [ "$n" -lt 6 ] && [ -n "$cur" ] && [ "$cur" != "1" ]; do
+      cmd=$(ps -p "$cur" -o command= 2>/dev/null)
+      if printf '%s' "$cmd" | grep -qF "$PWD/server/index.html"; then
+        echo "  * stopping leftover watch page (was serving this project's index.html)"
+        kill "$cur" "$pid" 2>/dev/null
+        killed=1
+        break
+      fi
+      ppid=$(ps -p "$cur" -o ppid= 2>/dev/null | tr -d ' ')
+      [ -z "$ppid" ] || [ "$ppid" = "$cur" ] && break
+      cur=$ppid
+      n=$((n+1))
+    done
+    [ "$killed" = 1 ] && break
+  done
+  # Fallback: the page responds as this project's watch page, so it is our
+  # leftover web server even if the parent chain is gone (orphaned `nc`).
+  if [ "$killed" != 1 ] && is_web_server_running; then
+    pid=$(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t 2>/dev/null | head -n 1)
+    if [ -n "$pid" ]; then
+      echo "  * stopping leftover watch page (was serving this project's page)"
+      kill "$pid" 2>/dev/null
+      sleep 0.5
+    fi
+  fi
+  set -e
+}
+
 start_web_server() {
   local index_file="$PWD/server/index.html"
 
@@ -78,10 +136,23 @@ if [ ! -x "$MTX_EXE" ]; then
   exit 1
 fi
 
+# ---------- 0. clean up leftovers so re-running "just works" ----------
+# If the previous window was closed while MediaMTX / the watch page were still
+# running in the background, stop those leftovers first. Only processes that
+# provably belong to THIS project are killed (matched by binary path or by
+# serving this project's server/index.html); unrelated software on the same
+# ports is never touched and will surface as the "in use" error below.
+PORT=8080
+echo "Checking for leftover services from a previous run ..."
+stop_leftover_mediamtx
+stop_leftover_web
+
 # ---------- 1. start MediaMTX (RTMP :1935) ----------
 echo "[1/2] MediaMTX ..."
 if lsof -iTCP:1935 -sTCP:LISTEN >/dev/null 2>&1; then
   echo "ERROR: port 1935 is in use by $(listener_command 1935)"
+  echo "       It is not a leftover dji-live service. Close the program"
+  echo "       using port 1935, then run this script again."
   read -n 1 -s -r -p "Press any key to close"
   exit 1
 else
@@ -101,13 +172,14 @@ else
 fi
 
 # ---------- 2. host the live page (built-in nc, no extra dependency) ----------
-PORT=8080
+echo "[2/2] Starting web server ..."
 if lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
   echo "ERROR: port $PORT is in use by $(listener_command $PORT)"
+  echo "       It is not a leftover dji-live service. Close the program"
+  echo "       using port $PORT, then run this script again."
   read -n 1 -s -r -p "Press any key to close"
   exit 1
 else
-  echo "[2/2] Starting web server ..."
   start_web_server
   for i in $(seq 1 10); do
     sleep 0.5
@@ -118,6 +190,7 @@ else
     read -n 1 -s -r -p "Press any key to close"
     exit 1
   fi
+  echo "      Web server is up on http://127.0.0.1:$PORT/"
 fi
 
 # ---------- print addresses (with interface names) ----------
